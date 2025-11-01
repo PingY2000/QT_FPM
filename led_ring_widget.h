@@ -1,0 +1,40 @@
+// led_ring_widget.h
+#ifndef LED_RING_WIDGET_H
+#define LED_RING_WIDGET_H
+
+#include <QWidget>
+#include <QVector>
+#include <QPushButton>
+
+#include "serialmanager.h"
+
+class LedRingWidget : public QWidget
+{
+    Q_OBJECT
+public:
+    explicit LedRingWidget(QWidget *parent = nullptr, SerialManager *manager = nullptr);
+    void refreshLed();
+
+    void setLedColor(int index, const QColor &color);
+    int ledCount() const;
+
+    struct LedState {
+        bool on;
+        QString color;
+    };
+    QVector<LedState> ledStates;
+
+public slots:
+    void handleLedButtonClicked();
+
+private:
+    void createLedRings();
+
+    QVector<QPushButton*> ledButtons;
+
+    SerialManager *serialManager;
+
+
+};
+
+#endif // LED_RING_WIDGET_H

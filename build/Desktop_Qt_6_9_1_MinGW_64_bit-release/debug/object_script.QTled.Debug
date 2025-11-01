@@ -1,0 +1,13 @@
+debug/cameramanager.o
+debug/fluorescence.o
+debug/led_ring_widget.o
+debug/main.o
+debug/mainwindow.o
+debug/motor_lens.o
+debug/serialmanager.o
+debug/moc_cameramanager.o
+debug/moc_fluorescence.o
+debug/moc_led_ring_widget.o
+debug/moc_mainwindow.o
+debug/moc_motor_lens.o
+debug/moc_serialmanager.o

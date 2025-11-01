@@ -1,0 +1,13 @@
+release/cameramanager.o
+release/fluorescence.o
+release/led_ring_widget.o
+release/main.o
+release/mainwindow.o
+release/motor_lens.o
+release/serialmanager.o
+release/moc_cameramanager.o
+release/moc_fluorescence.o
+release/moc_led_ring_widget.o
+release/moc_mainwindow.o
+release/moc_motor_lens.o
+release/moc_serialmanager.o
