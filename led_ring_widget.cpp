@@ -126,3 +126,13 @@ void LedRingWidget::handleLedButtonClicked() {
     refreshLed();
 
 }
+
+QVector<QPair<bool, QString>> LedRingWidget::getLedStates() const
+{
+    QVector<QPair<bool, QString>> states;
+    for (const auto &led : ledStates) {
+        states.append(qMakePair(led.on, led.color));
+    }
+    return states;
+}
+

@@ -271,13 +271,52 @@ void MainWindow::on_spinBox_ExpoGain_valueChanged(int arg1)
 
 void MainWindow::on_pushButton_Snap_clicked()
 {
+    QString ledStateStr;
+    if (ringWidget) {
+        QVector<QPair<bool, QString>> states = ringWidget->getLedStates();
+        for (const auto &s : states) {
+            ledStateStr += s.first ? "1" : "0";  // LED开=1，关=0
+        }
+    } else {
+        ledStateStr = "UNKNOWN";
+    }
+
     if (camera && camera->isOpen()) {
+        camera->setLedStateString(ledStateStr);  // 把 LED 状态传给 CameraManager
         disconnect(camera, &CameraManager::stillImageArrived, nullptr, nullptr); // 先断开所有旧的连接，避免重复
         connect(camera, &CameraManager::stillImageArrived, this, [=]() {
             camera->fetchStillImageTif();
         });
         camera->snapImage();  // 发起静态图像拍摄
+    } else {
+        // -------- 无相机：模拟模式 --------
+        qDebug() << "无相机连接，执行模拟拍照";
+
+        // 1. 生成时间戳
+        QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+
+        // 3. 构造文件名
+        QString filename = QString("snapshot_%1_LED%2.tif")
+                               .arg(timestamp)
+                               .arg(ledStateStr);
+
+        QString saveDir = "D:/snap_test"; // ← 替换为实际保存路径
+        QDir().mkpath(saveDir);
+        QString filePath = QDir(saveDir).filePath(filename);
+
+        // 4. 输出文件名
+        qDebug() << "模拟保存文件名:" << filePath;
+
+        // 5. 生成模拟图像保存
+        QImage fake(640, 480, QImage::Format_RGB888);
+        fake.fill(Qt::gray);
+        fake.save(filePath, "TIFF");
+
+        // 6. 发送信号以便 UI 显示
+        if (camera)
+            emit camera->imageReady(fake);
     }
+
 }
 
 void MainWindow::on_pushButton_SnapScheduled_toggled(bool checked)

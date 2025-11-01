@@ -8,6 +8,15 @@
 #include <QImageWriter>
 #include <QDir>
 
+
+void CameraManager::setLedStateString(const QString &state) {
+    ledStateString = state;
+}
+
+QString CameraManager::getLedStateString() const {
+    return ledStateString;
+}
+
 CameraManager::CameraManager(QObject *parent) : QObject(parent)
 {
 }
@@ -129,7 +138,8 @@ void CameraManager::fetchStillImageTif() {
             QString filename = QString("snapshot_%1_exp%2_gain%3.tif")
                                    .arg(timestamp)
                                    .arg(exposure_us/1000)
-                                   .arg(gain);
+                                   .arg(gain)
+                                   .arg(ledStateString.isEmpty() ? "UNKNOWN" : ledStateString);
             QString filePath = QDir(saveDirectory).filePath(filename);
 
             if (img.save(filePath, "TIFF")) {

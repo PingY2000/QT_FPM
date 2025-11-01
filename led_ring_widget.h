@@ -15,6 +15,9 @@ public:
     explicit LedRingWidget(QWidget *parent = nullptr, SerialManager *manager = nullptr);
     void refreshLed();
 
+    QVector<QPair<bool, QString>> getLedStates() const;
+
+
     void setLedColor(int index, const QColor &color);
     int ledCount() const;
 
