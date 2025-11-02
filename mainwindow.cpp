@@ -430,7 +430,7 @@ void MainWindow::on_pushButton_AutoScan_toggled(bool checked)
         }
 
         currentLedIndex = 0;
-        autoScanTimer->start(1500); // 每1.5秒切换一个灯，可根据相机响应调整
+        autoScanTimer->start(2000); // 每1.5秒切换一个灯，可根据相机响应调整
     } else {
         qDebug() << "自动扫描停止";
         if (autoScanTimer)
