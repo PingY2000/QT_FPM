@@ -27,6 +27,8 @@ public:
     };
     QVector<LedState> ledStates;
 
+    void clickLed(int index);
+
 public slots:
     void handleLedButtonClicked();
 

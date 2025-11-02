@@ -19,6 +19,10 @@
 
 SerialManager *serialManager;
 
+QTimer* autoScanTimer = nullptr;
+int currentLedIndex = 0;
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -390,5 +394,47 @@ void MainWindow::on_horizontalSlider_FliterSpeed_valueChanged(int value)
 void MainWindow::on_pushButton_MotorFliter_ENA_toggled(bool checked)
 {
     fluorescence->setEnabled(checked);
+}
+
+
+void MainWindow::on_pushButton_AutoScan_toggled(bool checked)
+{
+    if (checked) {
+        qDebug() << "自动扫描开始";
+
+        if (!autoScanTimer) {
+            autoScanTimer = new QTimer(this);
+            connect(autoScanTimer, &QTimer::timeout, this, [=]() {
+                int ledCount = ringWidget->ledStates.size(); // 使用 ringWidget
+
+                if (currentLedIndex >= ledCount) {
+                    // 扫描完毕
+                    autoScanTimer->stop();
+                    ui->pushButton_AutoScan->setChecked(false);
+                    qDebug() << "自动扫描结束";
+                    return;
+                }
+
+                // 1. 关闭所有灯
+                ui->pushButton_All_Off->click();
+
+                // 2. 打开当前灯
+                 ringWidget->clickLed(currentLedIndex);
+
+                // 3. 拍照
+                ui->pushButton_Snap->click();
+
+                // 4. 进入下一个灯
+                currentLedIndex++;
+            });
+        }
+
+        currentLedIndex = 0;
+        autoScanTimer->start(1500); // 每1.5秒切换一个灯，可根据相机响应调整
+    } else {
+        qDebug() << "自动扫描停止";
+        if (autoScanTimer)
+            autoScanTimer->stop();
+    }
 }
 

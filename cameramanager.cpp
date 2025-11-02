@@ -135,7 +135,7 @@ void CameraManager::fetchStillImageTif() {
 
             // 构造文件路径，带曝光信息
             QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-            QString filename = QString("snapshot_%1_exp%2_gain%3.tif")
+            QString filename = QString("snapshot_%1_exp%2_gain%3_%4.tif")
                                    .arg(timestamp)
                                    .arg(exposure_us/1000)
                                    .arg(gain)

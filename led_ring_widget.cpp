@@ -136,3 +136,16 @@ QVector<QPair<bool, QString>> LedRingWidget::getLedStates() const
     return states;
 }
 
+void LedRingWidget::clickLed(int index)
+{
+    if (index < 0 || index >= ledStates.size())
+        return;
+
+    // 切换 LED 状态
+    ledStates[index].on = !ledStates[index].on;
+
+    // 刷新显示和发送串口命令
+    refreshLed();
+
+}
+

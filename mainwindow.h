@@ -78,6 +78,8 @@ private slots:
 
     void on_pushButton_MotorFliter_ENA_toggled(bool checked);
 
+    void on_pushButton_AutoScan_toggled(bool checked);
+
 private:
 
     Ui::MainWindow *ui;
