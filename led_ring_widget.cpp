@@ -88,26 +88,40 @@ void LedRingWidget::refreshLed()
     data.append(0xA5);  // HEADER
     data.append(0x5A);
     data.append(0x01);
-    data.append(0x06);
-    for (int i = 0; i < 6; i++){
-        quint8 result = 0;
-        if (i)
-            for (int j = 0; j < qMin(8, ledStates.size()-i*8); ++j) {
-                if (ledStates[i*8+j].on) {
-                    result |= (1 << j);
-                }
-            }
-        else{
-            for (int j = 0; j < 7; ++j) {
-                if (ledStates[(j+1)%7].on) {
-                    result |= (1 << j);
-                }
-            }
-            if (ledStates[7].on) result |= (1 << 7);
-        }
+    data.append(17);
 
-        data.append(result);
+    uint8_t accumulator = 0;
+    int bitPos = 0; // 当前 bit 写入位置（0~7）
+
+    for (int i = 0; i < 43; i++) {
+
+        const auto& s = ledStates[i];
+        QColor c(s.color);  // 解析 QString 颜色
+
+        int r = c.red()   > 0 ? 1 : 0;
+        int g = c.green() > 0 ? 1 : 0;
+        int b = c.blue()  > 0 ? 1 : 0;
+
+        uint8_t v = ledStates[i].on ? (r << 2) | (g << 1) | b : 0;
+
+        for (int bit = 0; bit < 3; bit++) {
+
+            // 写入这一 bit
+            accumulator |= ((v >> bit) & 1) << bitPos;
+            bitPos++;
+
+            // 填满 8 bit，就 push 到 data
+            if (bitPos == 8) {
+                data.append(accumulator);
+                accumulator = 0;
+                bitPos = 0;
+            }
+        }
     }
+
+    // 最后不足 8bit 的也要 append
+    if (bitPos != 0)
+        data.append(accumulator);
 
     if (serialManager && serialManager->isOpen()) {
         serialManager->sendDatawithCRC(data);

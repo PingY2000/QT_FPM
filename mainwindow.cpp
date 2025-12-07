@@ -14,6 +14,8 @@
 #include <QIODevice>
 #include <QFileDialog>
 #include <QSettings>
+#include <QPainter>
+
 
 
 
@@ -55,6 +57,33 @@ MainWindow::MainWindow(QWidget *parent)
     ringWidget = new LedRingWidget(this, serialManager);  // 将其传给 LED 控件
     ui->verticalLayout->addWidget(ringWidget);
 
+    //led颜色设置
+    // 颜色模式列表
+    struct ColorMode {
+        QString name;
+        QString hex; // 或 QColor
+    };
+
+    QVector<ColorMode> colorModes = {
+        {"白",   "#ffffff"},
+        {"红",   "#ff0000"},
+        {"绿",   "#00ff00"},
+        {"蓝",   "#0000ff"},
+    };
+
+    // 添加到下拉框
+    for (const auto& mode : colorModes) {
+        QPixmap pix(20,20);
+        pix.fill(Qt::transparent);
+        QPainter p(&pix);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(QColor(mode.hex));
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(0,0,20,20);
+        ui->comboBox_LedColorMode->addItem(QIcon(pix), mode.name, mode.hex);
+    }
+
+
     //镜头电机组件
     motorLens = new MotorLens(serialManager, this);
 
@@ -70,6 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     //荧光
     fluorescence = new FluorescenceControl(serialManager, this);
+
 }
 
 MainWindow::~MainWindow()
@@ -436,5 +466,18 @@ void MainWindow::on_pushButton_AutoScan_toggled(bool checked)
         if (autoScanTimer)
             autoScanTimer->stop();
     }
+}
+
+
+void MainWindow::on_comboBox_LedColorMode_currentIndexChanged(int index)
+{
+    QString hex = ui->comboBox_LedColorMode->currentData().toString();
+
+    // 设置所有 LED 为统一颜色
+    for (int i = 0; i < ringWidget->ledStates.size(); i++) {
+        ringWidget->ledStates[i].color = hex;
+    }
+
+    ringWidget->refreshLed(); // 刷新 LED 环显示并发送串口
 }
 

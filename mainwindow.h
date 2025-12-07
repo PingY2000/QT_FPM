@@ -80,6 +80,8 @@ private slots:
 
     void on_pushButton_AutoScan_toggled(bool checked);
 
+    void on_comboBox_LedColorMode_currentIndexChanged(int index);
+
 private:
 
     Ui::MainWindow *ui;
