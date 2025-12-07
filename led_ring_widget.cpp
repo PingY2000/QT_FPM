@@ -21,7 +21,7 @@ LedRingWidget::LedRingWidget(QWidget *parent, SerialManager *manager)
     layout->addWidget(view);
 
     QVector<int> counts = {1, 6, 12, 24};
-    QVector<int> radii = {0, 56, 120, 200};
+    QVector<int> radii = {0, 56, 120, 180};
 
 
     int centerX = 250;
@@ -50,7 +50,8 @@ LedRingWidget::LedRingWidget(QWidget *parent, SerialManager *manager)
             QPushButton *button = new QPushButton(QString::number(ledButtons.size() + 1));
             button->setProperty("ledIndex", ledButtons.size());
             button->setFixedSize(30, 30);
-            button->setStyleSheet("background-color: #000000; border-radius: 15px; border: 5px solid gray;color:  gray;");
+            button->setAttribute(Qt::WA_TranslucentBackground);
+            button->setStyleSheet("background-color: #000000; border-radius: 15px; border: 3px solid gray;color:  gray;");
             connect(button, &QPushButton::clicked, this, &LedRingWidget::handleLedButtonClicked);
 
 
@@ -79,9 +80,9 @@ void LedRingWidget::refreshLed()
 
     for (int i = 0; i < ledButtons.size(); ++i) {
         if (ledStates[i].on)
-            ledButtons[i]->setStyleSheet(QString("background-color:%1; border-radius: 15px; border: 5px solid gray;color: gray;").arg(ledStates[i].color));
+            ledButtons[i]->setStyleSheet(QString("background-color:%1; border-radius: 15px; border: 2px solid gray;color: gray;").arg(ledStates[i].color));
         else
-            ledButtons[i]->setStyleSheet("background-color:#000000; border-radius: 15px; border: 5px solid gray;color: gray;");
+            ledButtons[i]->setStyleSheet("background-color:#000000; border-radius: 15px; border: 3px solid gray;color: gray;");
     }
     QByteArray data;
     data.append(0xA5);  // HEADER
