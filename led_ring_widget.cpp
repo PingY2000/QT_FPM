@@ -95,14 +95,25 @@ void LedRingWidget::refreshLed()
 
     for (int i = 0; i < 43; i++) {
 
-        const auto& s = ledStates[i];
+        int mappedIndex = i;
+
+        if (i < 7) { // 仅处理前 7 个灯 (索引 0 到 6)
+            if (i == 6) {
+                mappedIndex = 0; // 物理上的第 7 个位置，取逻辑上的第 1 个数据
+            } else {
+                mappedIndex = i + 1; // 物理上的第 1-6 个位置，取逻辑上的第 2-7 个数据
+            }
+        }
+        // ------------------------------
+
+        const auto& s = ledStates[mappedIndex]; // 使用映射后的索引获取状态
         QColor c(s.color);  // 解析 QString 颜色
 
         int r = c.red()   > 0 ? 1 : 0;
         int g = c.green() > 0 ? 1 : 0;
         int b = c.blue()  > 0 ? 1 : 0;
 
-        uint8_t v = ledStates[i].on ? (r << 2) | (g << 1) | b : 0;
+        uint8_t v = ledStates[mappedIndex].on ? (r << 2) | (g << 1) | b : 0;
 
         for (int bit = 0; bit < 3; bit++) {
 

@@ -65,10 +65,10 @@ MainWindow::MainWindow(QWidget *parent)
     };
 
     QVector<ColorMode> colorModes = {
-        {"白",   "#ffffff"},
-        {"红",   "#ff0000"},
-        {"绿",   "#00ff00"},
-        {"蓝",   "#0000ff"},
+        {"W",   "#ffffff"},
+        {"R",   "#ff0000"},
+        {"G",   "#00ff00"},
+        {"B",   "#0000ff"},
     };
 
     // 添加到下拉框
@@ -308,9 +308,32 @@ void MainWindow::on_pushButton_Snap_clicked()
     QString ledStateStr;
     if (ringWidget) {
         QVector<QPair<bool, QString>> states = ringWidget->getLedStates();
-        for (const auto &s : states) {
-            ledStateStr += s.first ? "1" : "0";  // LED开=1，关=0
+
+        quint64 binaryValue = 0;
+        QString hexString;
+
+        // 逻辑：将 states 视为一个超长的二进制数
+        // 由于 43 位超过了 int (32位)，我们需要用 quint64 或分段处理i
+
+        for (int i = 0; i < states.size(); ++i) {
+            // 将布尔值转为 bit 存入临时变量
+            if (states[i].first) {
+                // 这里假设 states[0] 是最高位
+                binaryValue |= (1ULL << i);
+            }
+
+            // 每处理完 4 位，或者处理到最后一位时，转一次十六进制（可选分段处理更安全）
         }
+
+        // 直接利用 QString 转换输出
+        // 43 位数据建议直接转为 16 进制字符串
+        ledStateStr = QString::number(binaryValue, 16).toUpper();
+
+        // 如果需要固定长度（不足 11 位补 0）
+        ledStateStr = ledStateStr.rightJustified(11, '0');
+
+        QString colorName = ui->comboBox_LedColorMode->currentText();
+        ledStateStr += "_" + colorName;
     } else {
         ledStateStr = "UNKNOWN";
     }
@@ -355,12 +378,25 @@ void MainWindow::on_pushButton_Snap_clicked()
 
 void MainWindow::on_pushButton_SnapScheduled_toggled(bool checked)
 {
-    ui->spinBox_SnapScheduledTime->setReadOnly(checked);
     if (checked) {
-        ui->pushButton_Snap->click();
-        snapshotTimer->start(ui->spinBox_SnapScheduledTime->value()*1000); // 每 5000 毫秒（5 秒）拍一次
+        // 1. 进入定时扫描模式，关闭 UI 自动曝光（切换为手动控制）
+        ui->pushButton_AutoExpo->setChecked(false);
+        qDebug() << "Current AutoExpo state:" << ui->pushButton_AutoExpo->isChecked();
+
+        // 2. 初始化索引
+        currentLedIndex = 0;
+
+        if (!snapshotTimer) {
+            snapshotTimer = new QTimer(this);
+        }
+        disconnect(snapshotTimer, &QTimer::timeout, nullptr, nullptr);
+        connect(snapshotTimer, &QTimer::timeout, this, &MainWindow::processNextScheduledStep);
+
+        // 延迟一小会儿执行第一步，给相机切换模式留时间
+        QTimer::singleShot(200, this, &MainWindow::processNextScheduledStep);
     } else {
         snapshotTimer->stop();
+        qDebug() << "定时扫描已停止";
     }
 }
 
@@ -385,20 +421,20 @@ void MainWindow::on_lineEdit_FilePath_textChanged(const QString &arg1)
 
 void MainWindow::on_pushButton_Laser365_toggled(bool checked)
 {
-    fluorescence->sendFluorescenceCommand(ui->pushButton_Laser365->isChecked(),ui->pushButton_Laser488->isChecked(),ui->pushButton_Laser532->isChecked());
+    fluorescence->sendFluorescenceCommand(checked,ui->pushButton_Laser488->isChecked(),ui->pushButton_Laser532->isChecked());
 
 }
 
 
 void MainWindow::on_pushButton_Laser488_toggled(bool checked)
 {
-    fluorescence->sendFluorescenceCommand(ui->pushButton_Laser365->isChecked(),ui->pushButton_Laser488->isChecked(),ui->pushButton_Laser532->isChecked());
+    fluorescence->sendFluorescenceCommand(ui->pushButton_Laser365->isChecked(),checked,ui->pushButton_Laser532->isChecked());
 }
 
 
 void MainWindow::on_pushButton_Laser532_toggled(bool checked)
 {
-    fluorescence->sendFluorescenceCommand(ui->pushButton_Laser365->isChecked(),ui->pushButton_Laser488->isChecked(),ui->pushButton_Laser532->isChecked());
+    fluorescence->sendFluorescenceCommand(ui->pushButton_Laser365->isChecked(),ui->pushButton_Laser488->isChecked(),checked);
 }
 
 
@@ -427,46 +463,6 @@ void MainWindow::on_pushButton_MotorFliter_ENA_toggled(bool checked)
 }
 
 
-void MainWindow::on_pushButton_AutoScan_toggled(bool checked)
-{
-    if (checked) {
-        qDebug() << "自动扫描开始";
-
-        if (!autoScanTimer) {
-            autoScanTimer = new QTimer(this);
-            connect(autoScanTimer, &QTimer::timeout, this, [=]() {
-                int ledCount = ringWidget->ledStates.size(); // 使用 ringWidget
-
-                if (currentLedIndex >= ledCount) {
-                    // 扫描完毕
-                    autoScanTimer->stop();
-                    ui->pushButton_AutoScan->setChecked(false);
-                    qDebug() << "自动扫描结束";
-                    return;
-                }
-
-                // 1. 关闭所有灯
-                ui->pushButton_All_Off->click();
-
-                // 2. 打开当前灯
-                 ringWidget->clickLed(currentLedIndex);
-
-                // 3. 拍照
-                ui->pushButton_Snap->click();
-
-                // 4. 进入下一个灯
-                currentLedIndex++;
-            });
-        }
-
-        currentLedIndex = 0;
-        autoScanTimer->start(2000); // 每1.5秒切换一个灯，可根据相机响应调整
-    } else {
-        qDebug() << "自动扫描停止";
-        if (autoScanTimer)
-            autoScanTimer->stop();
-    }
-}
 
 
 void MainWindow::on_comboBox_LedColorMode_currentIndexChanged(int index)
@@ -479,5 +475,69 @@ void MainWindow::on_comboBox_LedColorMode_currentIndexChanged(int index)
     }
 
     ringWidget->refreshLed(); // 刷新 LED 环显示并发送串口
+}
+
+void MainWindow::processNextScheduledStep()
+{
+    int totalLeds = ringWidget->ledStates.size();
+
+    if (currentLedIndex >= totalLeds) {
+        ui->pushButton_SnapScheduled->setChecked(false);
+        return;
+    }
+
+    // 停止主定时器，由内部的 singleShot 驱动下一步
+    snapshotTimer->stop();
+
+    // --- 步骤 1: 物理硬件切换 (灯光 & 参数) ---
+    // 关灯
+    for (int i = 0; i < totalLeds; ++i) ringWidget->ledStates[i].on = false;
+    // 开当前的灯
+    ringWidget->ledStates[currentLedIndex].on = true;
+    ringWidget->refreshLed();
+
+    // 设定对应的参数
+    int targetExp = 0;
+    int targetGain = 0;
+    if (currentLedIndex < 7) {
+        targetExp = ui->spinBox_ExposureTime_C->value();
+        targetGain = ui->spinBox_ExpoGain_C->value();
+    } else if (currentLedIndex < 19) {
+        targetExp = ui->spinBox_ExposureTime_M->value();
+        targetGain = ui->spinBox_ExpoGain_M->value();
+    } else {
+        targetExp = ui->spinBox_ExposureTime_O->value();
+        targetGain = ui->spinBox_ExpoGain_O->value();
+    }
+
+    // 更新 UI（这会触发 valueChanged 发送指令给相机）
+    ui->spinBox_ExposureTime->setValue(targetExp);
+    ui->spinBox_ExpoGain->setValue(targetGain);
+
+    // 强制处理事件队列，确保串口数据和 UI 刷新立即执行
+    QCoreApplication::processEvents();
+
+    // --- 步骤 2: 等待硬件稳定后拍照 ---
+    // 等待时间 = 3倍曝光时间 + 100ms 串口传输缓冲
+    int waitTime = qMax(600, (targetExp * 3) + 100);
+
+    QTimer::singleShot(waitTime, this, [=]() {
+        if (!ui->pushButton_SnapScheduled->isChecked()) return;
+
+        qDebug() << "正在拍摄第" << (currentLedIndex + 1) << "号灯";
+
+        // 执行拍照 (此处会调用 snapImage 并 fetchStillImageTif)
+        on_pushButton_Snap_clicked();
+
+        // 索引递增
+        currentLedIndex++;
+
+        // 步骤 3: 拍照后给一点缓冲时间再处理下一个灯 (防止相机缓冲区溢出)
+        QTimer::singleShot(200, this, [=](){
+            if (ui->pushButton_SnapScheduled->isChecked()) {
+                processNextScheduledStep(); // 递归调用处理下一个
+            }
+        });
+    });
 }
 
